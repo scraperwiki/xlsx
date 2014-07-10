@@ -241,51 +241,105 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 		panic("Workbook header already written")
 	}
 
-	z := ww.zipWriter
-
-	f, err := z.Create("[Content_Types].xml")
+	header := &zip.FileHeader{
+		Name:   "[Content_Types].xml",
+		Method: 8,
+	}
+	f, err := ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateContentTypes.Execute(f, nil)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("docProps/app.xml")
+	header = &zip.FileHeader{
+		Name:   "docProps/app.xml",
+		Method: 8,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateApp.Execute(f, s)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("docProps/core.xml")
+	header = &zip.FileHeader{
+		Name:   "docProps/core.xml",
+		Method: 8,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateCore.Execute(f, s.DocumentInfo)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("_rels/.rels")
+	header = &zip.FileHeader{
+		Name:   "_rels/.rels",
+		Method: 8,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateRelationships.Execute(f, nil)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("xl/workbook.xml")
+	header = &zip.FileHeader{
+		Name:   "xl/workbook.xml",
+		Method: 8,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateWorkbook.Execute(f, s)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("xl/_rels/workbook.xml.rels")
+	header = &zip.FileHeader{
+		Name:   "xl/_rels/workbook.xml.rels",
+		Method: 8,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateWorkbookRelationships.Execute(f, nil)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("xl/styles.xml")
+	header = &zip.FileHeader{
+		Name:   "xl/styles.xml",
+		Method: 8,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateStyles.Execute(f, nil)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("xl/sharedStrings.xml")
+	header = &zip.FileHeader{
+		Name:   "xl/sharedStrings.xml",
+		Method: 8,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateStringLookups.Execute(f, s.SharedStrings())
 	if err != nil {
 		return err
@@ -328,7 +382,15 @@ func (ww *WorkbookWriter) NewSheetWriter(s *Sheet) (*SheetWriter, error) {
 		}
 	}
 
-	f, err := ww.zipWriter.Create("xl/worksheets/" + "sheet1" + ".xml")
+	header := &zip.FileHeader{
+		Name:   "xl/worksheets/sheet1.xml",
+		Method: 8,
+	}
+	f, err := ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return nil, err
+	}
+
 	sw := &SheetWriter{f, err, 0, 0, false}
 
 	if ww.sheetWriter != nil {
