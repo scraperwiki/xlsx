@@ -201,10 +201,6 @@ func (s *Sheet) SaveToFile(filename string) error {
 // Save the XLSX file to the given writer
 func (s *Sheet) SaveToWriter(w io.Writer) error {
 
-	var comp zip.Compressor
-	comp = func(w io.Writer) (io.WriteCloser, error) { return flate.NewWriter(w, 1) }
-	zip.RegisterCompressor(5, comp)
-
 	ww := NewWorkbookWriter(w)
 
 	sw, err := ww.NewSheetWriter(s)
@@ -233,6 +229,10 @@ type WorkbookWriter struct {
 // NewWorkbookWriter creates a new WorkbookWriter, which SheetWriters will
 // operate on. It must be closed when all Sheets have been written.
 func NewWorkbookWriter(w io.Writer) *WorkbookWriter {
+	var comp zip.Compressor
+	comp = func(w io.Writer) (io.WriteCloser, error) { return flate.NewWriter(w, 1) }
+	zip.RegisterCompressor(5, comp)
+
 	return &WorkbookWriter{zip.NewWriter(w), nil, false, false}
 }
 
