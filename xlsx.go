@@ -15,6 +15,10 @@ import (
 	"time"
 )
 
+const (
+	DeflateMinimal uint16 = 5
+)
+
 type CellType uint
 
 // Basic spreadsheet cell types
@@ -248,7 +252,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header := &zip.FileHeader{
 		Name:   "[Content_Types].xml",
-		Method: 5,
+		Method: DeflateMinimal,
 	}
 	f, err := ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -261,7 +265,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "docProps/app.xml",
-		Method: 5,
+		Method: DeflateMinimal,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -274,7 +278,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "docProps/core.xml",
-		Method: 5,
+		Method: DeflateMinimal,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -287,7 +291,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "_rels/.rels",
-		Method: 5,
+		Method: DeflateMinimal,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -300,7 +304,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "xl/workbook.xml",
-		Method: 5,
+		Method: DeflateMinimal,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -313,7 +317,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "xl/_rels/workbook.xml.rels",
-		Method: 5,
+		Method: DeflateMinimal,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -326,7 +330,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "xl/styles.xml",
-		Method: 5,
+		Method: DeflateMinimal,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -339,7 +343,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "xl/sharedStrings.xml",
-		Method: 5,
+		Method: DeflateMinimal,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -389,7 +393,7 @@ func (ww *WorkbookWriter) NewSheetWriter(s *Sheet) (*SheetWriter, error) {
 
 	header := &zip.FileHeader{
 		Name:   "xl/worksheets/sheet1.xml",
-		Method: 5,
+		Method: DeflateMinimal,
 	}
 	f, err := ww.zipWriter.CreateHeader(header)
 	if err != nil {
