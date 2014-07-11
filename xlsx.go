@@ -6,6 +6,7 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
+	"compress/flate"
 	"fmt"
 	"html"
 	"io"
@@ -200,6 +201,10 @@ func (s *Sheet) SaveToFile(filename string) error {
 // Save the XLSX file to the given writer
 func (s *Sheet) SaveToWriter(w io.Writer) error {
 
+	var comp zip.Compressor
+	comp = func(w io.Writer) (io.WriteCloser, error) { return flate.NewWriter(w, 1) }
+	zip.RegisterCompressor(5, comp)
+
 	ww := NewWorkbookWriter(w)
 
 	sw, err := ww.NewSheetWriter(s)
@@ -243,7 +248,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header := &zip.FileHeader{
 		Name:   "[Content_Types].xml",
-		Method: 8,
+		Method: 5,
 	}
 	f, err := ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -256,7 +261,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "docProps/app.xml",
-		Method: 8,
+		Method: 5,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -269,7 +274,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "docProps/core.xml",
-		Method: 8,
+		Method: 5,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -282,7 +287,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "_rels/.rels",
-		Method: 8,
+		Method: 5,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -295,7 +300,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "xl/workbook.xml",
-		Method: 8,
+		Method: 5,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -308,7 +313,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "xl/_rels/workbook.xml.rels",
-		Method: 8,
+		Method: 5,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -321,7 +326,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "xl/styles.xml",
-		Method: 8,
+		Method: 5,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -334,7 +339,7 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 
 	header = &zip.FileHeader{
 		Name:   "xl/sharedStrings.xml",
-		Method: 8,
+		Method: 5,
 	}
 	f, err = ww.zipWriter.CreateHeader(header)
 	if err != nil {
@@ -384,7 +389,7 @@ func (ww *WorkbookWriter) NewSheetWriter(s *Sheet) (*SheetWriter, error) {
 
 	header := &zip.FileHeader{
 		Name:   "xl/worksheets/sheet1.xml",
-		Method: 8,
+		Method: 5,
 	}
 	f, err := ww.zipWriter.CreateHeader(header)
 	if err != nil {
