@@ -6,7 +6,6 @@ import (
 	"archive/zip"
 	"bufio"
 	"bytes"
-	"compress/flate"
 	"fmt"
 	"html"
 	"io"
@@ -16,7 +15,7 @@ import (
 )
 
 const (
-	DeflateMinimal uint16 = 5
+	DeflateMinimal uint16 = 8 // Regular level-5 Deflate
 )
 
 type CellType uint
@@ -233,10 +232,6 @@ type WorkbookWriter struct {
 // NewWorkbookWriter creates a new WorkbookWriter, which SheetWriters will
 // operate on. It must be closed when all Sheets have been written.
 func NewWorkbookWriter(w io.Writer) *WorkbookWriter {
-	var comp zip.Compressor
-	comp = func(w io.Writer) (io.WriteCloser, error) { return flate.NewWriter(w, 1) }
-	zip.RegisterCompressor(5, comp)
-
 	return &WorkbookWriter{zip.NewWriter(w), nil, false, false}
 }
 
