@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+const (
+	DeflateMinimal uint16 = 8 // Regular level-5 Deflate
+)
+
 type CellType uint
 
 // Basic spreadsheet cell types
@@ -149,8 +153,8 @@ func (s *Sheet) SharedStrings() []string {
 
 // Given zero-based array indices output the Excel cell reference. For
 // example (0,0) => "A1"; (2,2) => "C3"; (26,45) => "AA46"
-func CellIndex(x, y uint64) string {
-	return fmt.Sprintf("%s%d", colName(x), y+1)
+func CellIndex(x, y uint64) (string, uint64) {
+	return colName(x), (y + 1)
 }
 
 // From a zero-based column number return the Excel column name.
@@ -161,7 +165,7 @@ func colName(n uint64) string {
 
 	for n > 0 {
 		n -= 1
-		s = fmt.Sprintf("%s%s", string(65+(n%26)), s)
+		s = string(65+(n%26)) + s
 		n /= 26
 	}
 
@@ -241,51 +245,105 @@ func (ww *WorkbookWriter) WriteHeader(s *Sheet) error {
 		panic("Workbook header already written")
 	}
 
-	z := ww.zipWriter
-
-	f, err := z.Create("[Content_Types].xml")
+	header := &zip.FileHeader{
+		Name:   "[Content_Types].xml",
+		Method: DeflateMinimal,
+	}
+	f, err := ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateContentTypes.Execute(f, nil)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("docProps/app.xml")
+	header = &zip.FileHeader{
+		Name:   "docProps/app.xml",
+		Method: DeflateMinimal,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateApp.Execute(f, s)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("docProps/core.xml")
+	header = &zip.FileHeader{
+		Name:   "docProps/core.xml",
+		Method: DeflateMinimal,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateCore.Execute(f, s.DocumentInfo)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("_rels/.rels")
+	header = &zip.FileHeader{
+		Name:   "_rels/.rels",
+		Method: DeflateMinimal,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateRelationships.Execute(f, nil)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("xl/workbook.xml")
+	header = &zip.FileHeader{
+		Name:   "xl/workbook.xml",
+		Method: DeflateMinimal,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateWorkbook.Execute(f, s)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("xl/_rels/workbook.xml.rels")
+	header = &zip.FileHeader{
+		Name:   "xl/_rels/workbook.xml.rels",
+		Method: DeflateMinimal,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateWorkbookRelationships.Execute(f, nil)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("xl/styles.xml")
+	header = &zip.FileHeader{
+		Name:   "xl/styles.xml",
+		Method: DeflateMinimal,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateStyles.Execute(f, nil)
 	if err != nil {
 		return err
 	}
 
-	f, err = z.Create("xl/sharedStrings.xml")
+	header = &zip.FileHeader{
+		Name:   "xl/sharedStrings.xml",
+		Method: DeflateMinimal,
+	}
+	f, err = ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
 	err = TemplateStringLookups.Execute(f, s.SharedStrings())
 	if err != nil {
 		return err
@@ -328,7 +386,15 @@ func (ww *WorkbookWriter) NewSheetWriter(s *Sheet) (*SheetWriter, error) {
 		}
 	}
 
-	f, err := ww.zipWriter.Create("xl/worksheets/" + "sheet1" + ".xml")
+	header := &zip.FileHeader{
+		Name:   "xl/worksheets/sheet1.xml",
+		Method: DeflateMinimal,
+	}
+	f, err := ww.zipWriter.CreateHeader(header)
+	if err != nil {
+		return nil, err
+	}
+
 	sw := &SheetWriter{f, err, 0, 0, false}
 
 	if ww.sheetWriter != nil {
@@ -370,35 +436,31 @@ func (sw *SheetWriter) WriteRows(rows []Row) error {
 
 		for j, c := range r.Cells {
 
-			cell := struct {
-				CellIndex string
-				Value     string
-				Type      CellType
-			}{
-				CellIndex: CellIndex(uint64(j), uint64(i)+sw.currentIndex),
-				Value:     c.Value,
-				Type:      c.Type,
-			}
+			cellX, cellY := CellIndex(uint64(j), uint64(i)+sw.currentIndex)
 
 			if c.Type == CellTypeDatetime {
 				d, err := time.Parse(time.RFC3339, c.Value)
 				if err == nil {
-					cell.Value = OADate(d)
+					c.Value = OADate(d)
 				}
 			} else if c.Type == CellTypeInlineString {
-				cell.Value = html.EscapeString(c.Value)
+				c.Value = html.EscapeString(c.Value)
 			}
+
+			var cellString string
 
 			switch c.Type {
 			case CellTypeString:
-				err = TemplateCellString.Execute(rb, cell)
+				cellString = `<c r="%s%d" t="s" s="1"><v>%s</v></c>`
 			case CellTypeInlineString:
-				err = TemplateCellInlineString.Execute(rb, cell)
+				cellString = `<c r="%s%d" t="inlineStr"><is><t>%s</t></is></c>`
 			case CellTypeNumber:
-				err = TemplateCellNumber.Execute(rb, cell)
+				cellString = `<c r="%s%d" t="n" s="1"><v>%s</v></c>`
 			case CellTypeDatetime:
-				err = TemplateCellDateTime.Execute(rb, cell)
+				cellString = `<c r="%s%d" s="2"><v>%s</v></c>`
 			}
+
+			io.WriteString(rb, fmt.Sprintf(cellString, cellX, cellY, c.Value))
 
 			if err != nil {
 				return err
@@ -425,15 +487,10 @@ func (sw *SheetWriter) Close() error {
 		panic("SheetWriter already closed")
 	}
 
-	sheet := struct {
-		Start string
-		End   string
-	}{
-		Start: "A1",
-		End:   CellIndex(sw.maxNCols-1, sw.currentIndex-1),
-	}
-
-	err := TemplateSheetEnd.Execute(sw.f, sheet)
+	cellEndX, cellEndY := CellIndex(sw.maxNCols-1, sw.currentIndex-1)
+	sheetEnd := fmt.Sprintf(`<dimension ref="A1:%s%d"/>`, cellEndX, cellEndY)
+	sheetEnd += `</sheetData></worksheet>`
+	_, err := io.WriteString(sw.f, sheetEnd)
 
 	sw.closed = true
 
