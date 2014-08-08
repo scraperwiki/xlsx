@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -337,7 +336,7 @@ func (ww *WorkbookWriter) NewSheetWriter(s *Sheet) (*SheetWriter, error) {
 	}
 
 	f, err := ww.zipWriter.Create("xl/worksheets/" + fmt.Sprintf("sheet%s", strconv.Itoa(len(ww.sheetNames)+1)) + ".xml")
-	sw := &SheetWriter{f, err, 0, 0, false, "", 0}
+	sw := &SheetWriter{f, err, 0, 0, false, []string{}, 0}
 
 	ww.documentInfo = &s.DocumentInfo
 
@@ -442,14 +441,26 @@ func (sw *SheetWriter) Close() error {
 	}
 
 	cellEndX, cellEndY := CellIndex(sw.maxNCols-1, sw.currentIndex-1)
-	sheetEnd := fmt.Sprintf(`<dimension ref="A1:%s%d"/></sheetData>`, cellEndX, cellEndY)
-	if sw.mergeCellsCount > 0 {
-		sheetEnd += fmt.Sprintf(`<mergeCells count="%v">`, sw.mergeCellsCount)
-		sheetEnd += strings.Join(sw.mergeCells, "")
-		sheetEnd += `</mergeCells>`
+	_, err := fmt.Fprintf(sw.f, `<dimension ref="A1:%s%d"/></sheetData>`, cellEndX, cellEndY)
+	if err != nil {
+		return err
 	}
-	sheetEnd += `</worksheet>`
-	_, err := io.WriteString(sw.f, sheetEnd)
+
+	if sw.mergeCellsCount > 0 {
+		_, err = fmt.Fprintf(sw.f, `<mergeCells count="%v">`, sw.mergeCellsCount)
+		if err != nil {
+			return err
+		}
+
+		for _, mergeCell := range sw.mergeCells {
+			_, err = fmt.Fprint(sw.f, mergeCell)
+			if err != nil {
+				return err
+			}
+		}
+		_, err = fmt.Fprint(sw.f, `</mergeCells>`)
+	}
+	_, err = fmt.Fprintf(sw.f, `</worksheet>`)
 
 	sw.closed = true
 
