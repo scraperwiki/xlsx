@@ -336,7 +336,7 @@ func (ww *WorkbookWriter) NewSheetWriter(s *Sheet) (*SheetWriter, error) {
 	}
 
 	f, err := ww.zipWriter.Create("xl/worksheets/" + fmt.Sprintf("sheet%s", strconv.Itoa(len(ww.sheetNames)+1)) + ".xml")
-	sw := &SheetWriter{f, err, 0, 0, false, "", 0}
+	sw := &SheetWriter{f, err, 0, 0, false, []string{}, 0}
 
 	ww.documentInfo = &s.DocumentInfo
 
@@ -355,7 +355,7 @@ type SheetWriter struct {
 	currentIndex    uint64
 	maxNCols        uint64
 	closed          bool
-	mergeCells      string
+	mergeCells      []string
 	mergeCellsCount int
 }
 
@@ -409,7 +409,7 @@ func (sw *SheetWriter) WriteRows(rows []Row) error {
 				panic(fmt.Sprintf("%v is not a valid colspan", c.Colspan))
 			} else if c.Colspan > 1 {
 				mergeCellX, _ := CellIndex(uint64(j)+c.Colspan-1, uint64(i)+sw.currentIndex)
-				_, err = fmt.Fprintf(sw.f, `<mergeCell ref="%[1]s%[2]d:%[3]s%[2]d"/>`, cellX, cellY, mergeCellX)
+				sw.mergeCells = append(sw.mergeCells, fmt.Sprintf(`<mergeCell ref="%[1]s%[2]d:%[3]s%[2]d"/>`, cellX, cellY, mergeCellX))
 				if err != nil {
 					return err
 				}
@@ -441,18 +441,36 @@ func (sw *SheetWriter) Close() error {
 	}
 
 	cellEndX, cellEndY := CellIndex(sw.maxNCols-1, sw.currentIndex-1)
-	sheetEnd := fmt.Sprintf(`<dimension ref="A1:%s%d"/></sheetData>`, cellEndX, cellEndY)
-	if sw.mergeCellsCount > 0 {
-		sheetEnd += fmt.Sprintf(`<mergeCells count="%v">`, sw.mergeCellsCount)
-		sheetEnd += sw.mergeCells
-		sheetEnd += `</mergeCells>`
+	_, err := fmt.Fprintf(sw.f, `<dimension ref="A1:%s%d"/></sheetData>`, cellEndX, cellEndY)
+	if err != nil {
+		return err
 	}
-	sheetEnd += `</worksheet>`
-	_, err := io.WriteString(sw.f, sheetEnd)
+
+	if sw.mergeCellsCount > 0 {
+		_, err = fmt.Fprintf(sw.f, `<mergeCells count="%v">`, sw.mergeCellsCount)
+		if err != nil {
+			return err
+		}
+
+		for _, mergeCell := range sw.mergeCells {
+			_, err = fmt.Fprint(sw.f, mergeCell)
+			if err != nil {
+				return err
+			}
+		}
+		_, err = fmt.Fprint(sw.f, `</mergeCells>`)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = fmt.Fprintf(sw.f, `</worksheet>`)
+	if err != nil {
+		return err
+	}
 
 	sw.closed = true
 
-	return err
+	return nil
 }
 
 // Writes the header of a sheet
