@@ -459,12 +459,18 @@ func (sw *SheetWriter) Close() error {
 			}
 		}
 		_, err = fmt.Fprint(sw.f, `</mergeCells>`)
+		if err != nil {
+			return err
+		}
 	}
 	_, err = fmt.Fprintf(sw.f, `</worksheet>`)
+	if err != nil {
+		return err
+	}
 
 	sw.closed = true
 
-	return err
+	return nil
 }
 
 // Writes the header of a sheet
