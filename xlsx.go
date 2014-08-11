@@ -19,6 +19,7 @@ type CellType uint
 const (
 	CellTypeNumber CellType = iota
 	CellTypeString
+	CellTypeDate
 	CellTypeDatetime
 	CellTypeInlineString
 )
@@ -381,7 +382,8 @@ func (sw *SheetWriter) WriteRows(rows []Row) error {
 
 			cellX, cellY := CellIndex(uint64(j), uint64(i)+sw.currentIndex)
 
-			if c.Type == CellTypeDatetime {
+			switch c.Type {
+			case CellTypeDate, CellTypeDatetime:
 				d, err := time.Parse(time.RFC3339, c.Value)
 				if err == nil {
 					c.Value = OADate(d)
@@ -403,6 +405,8 @@ func (sw *SheetWriter) WriteRows(rows []Row) error {
 				cellString = `<c r="%s%d" t="n" s="1"><v>%s</v></c>`
 			case CellTypeDatetime:
 				cellString = `<c r="%s%d" s="2"><v>%s</v></c>`
+			case CellTypeDate:
+				cellString = `<c r="%s%d" s="3"><v>%s</v></c>`
 			}
 
 			if c.Colspan < 0 {
