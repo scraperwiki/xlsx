@@ -390,7 +390,7 @@ func (sw *SheetWriter) WriteRows(rows []Row) error {
 				} else {
 					return err
 				}
-			} else if c.Type == CellTypeInlineString {
+			case CellTypeInlineString:
 				c.Value = html.EscapeString(c.Value)
 			}
 
