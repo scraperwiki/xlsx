@@ -29,6 +29,7 @@ type Cell struct {
 	Type    CellType
 	Value   string
 	Colspan uint64
+	Rowspan uint64
 }
 
 // XLSX Spreadsheet Row
@@ -409,11 +410,19 @@ func (sw *SheetWriter) WriteRows(rows []Row) error {
 				cellString = `<c r="%s%d" s="3"><v>%s</v></c>`
 			}
 
-			if c.Colspan < 0 {
+			if c.Colspan < 0 || c.Rowspan < 0 {
 				panic(fmt.Sprintf("%v is not a valid colspan", c.Colspan))
-			} else if c.Colspan > 1 {
-				mergeCellX, _ := CellIndex(uint64(j)+c.Colspan-1, uint64(i)+sw.currentIndex)
-				sw.mergeCells = append(sw.mergeCells, fmt.Sprintf(`<mergeCell ref="%[1]s%[2]d:%[3]s%[2]d"/>`, cellX, cellY, mergeCellX))
+			} else if c.Colspan > 1 || c.Rowspan > 1 {
+
+				if c.Colspan < 1 {
+					c.Colspan = 1
+				}
+				if c.Rowspan < 1 {
+					c.Rowspan = 1
+				}
+
+				mergeCellX, mergeCellY := CellIndex(uint64(j)+c.Colspan-1, uint64(i)+sw.currentIndex+c.Rowspan-1)
+				sw.mergeCells = append(sw.mergeCells, fmt.Sprintf(`<mergeCell ref="%[1]s%[2]d:%[3]s%[4]d"/>`, cellX, cellY, mergeCellX, mergeCellY))
 				if err != nil {
 					return err
 				}
