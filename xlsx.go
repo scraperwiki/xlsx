@@ -230,48 +230,72 @@ func (ww *WorkbookWriter) WriteHeader() error {
 	z := ww.zipWriter
 
 	f, err := z.Create("[Content_Types].xml")
+	if err != nil {
+		return err
+	}
 	err = TemplateContentTypes.Execute(f, ww.sheetNames)
 	if err != nil {
 		return err
 	}
 
 	f, err = z.Create("docProps/app.xml")
+	if err != nil {
+		return err
+	}
 	err = TemplateApp.Execute(f, ww.sheetNames)
 	if err != nil {
 		return err
 	}
 
 	f, err = z.Create("docProps/core.xml")
+	if err != nil {
+		return err
+	}
 	err = TemplateCore.Execute(f, ww.documentInfo)
 	if err != nil {
 		return err
 	}
 
 	f, err = z.Create("_rels/.rels")
+	if err != nil {
+		return err
+	}
 	err = TemplateRelationships.Execute(f, nil)
 	if err != nil {
 		return err
 	}
 
 	f, err = z.Create("xl/workbook.xml")
+	if err != nil {
+		return err
+	}
 	err = TemplateWorkbook.Execute(f, ww.sheetNames)
 	if err != nil {
 		return err
 	}
 
 	f, err = z.Create("xl/_rels/workbook.xml.rels")
+	if err != nil {
+		return err
+	}
 	err = TemplateWorkbookRelationships.Execute(f, ww.sheetNames)
 	if err != nil {
 		return err
 	}
 
 	f, err = z.Create("xl/styles.xml")
+	if err != nil {
+		return err
+	}
 	err = TemplateStyles.Execute(f, nil)
 	if err != nil {
 		return err
 	}
 
 	f, err = z.Create("xl/sharedStrings.xml")
+	if err != nil {
+		return err
+	}
 	err = TemplateStringLookups.Execute(f, ww.SharedStrings)
 	if err != nil {
 		return err
@@ -301,9 +325,11 @@ func (ww *WorkbookWriter) Close() error {
 	if ww.closed {
 		panic("WorkbookWriter already closed")
 	}
+	ww.closed = true
 
 	if ww.sheetWriter != nil {
 		err := ww.sheetWriter.Close()
+		ww.sheetWriter = nil
 		if err != nil {
 			return err
 		}
@@ -315,8 +341,6 @@ func (ww *WorkbookWriter) Close() error {
 			return err
 		}
 	}
-
-	ww.closed = true
 
 	return ww.zipWriter.Close()
 }
@@ -332,12 +356,16 @@ func (ww *WorkbookWriter) NewSheetWriter(s *Sheet) (*SheetWriter, error) {
 
 	if ww.sheetWriter != nil {
 		err := ww.sheetWriter.Close()
+		ww.sheetWriter = nil
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	f, err := ww.zipWriter.Create("xl/worksheets/" + fmt.Sprintf("sheet%s", strconv.Itoa(len(ww.sheetNames)+1)) + ".xml")
+	if err != nil {
+		return nil, err
+	}
 	sw := &SheetWriter{f, err, 0, 0, false, []string{}, 0}
 
 	ww.documentInfo = &s.DocumentInfo
@@ -452,6 +480,7 @@ func (sw *SheetWriter) Close() error {
 	if sw.closed {
 		panic("SheetWriter already closed")
 	}
+	sw.closed = true
 
 	cellEndX, cellEndY := CellIndex(sw.maxNCols-1, sw.currentIndex-1)
 	_, err := fmt.Fprintf(sw.f, `<dimension ref="A1:%s%d"/></sheetData>`, cellEndX, cellEndY)
@@ -480,8 +509,6 @@ func (sw *SheetWriter) Close() error {
 	if err != nil {
 		return err
 	}
-
-	sw.closed = true
 
 	return nil
 }
