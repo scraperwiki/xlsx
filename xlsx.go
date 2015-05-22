@@ -325,9 +325,11 @@ func (ww *WorkbookWriter) Close() error {
 	if ww.closed {
 		panic("WorkbookWriter already closed")
 	}
+	ww.closed = true
 
 	if ww.sheetWriter != nil {
 		err := ww.sheetWriter.Close()
+		ww.sheetWriter = nil
 		if err != nil {
 			return err
 		}
@@ -339,8 +341,6 @@ func (ww *WorkbookWriter) Close() error {
 			return err
 		}
 	}
-
-	ww.closed = true
 
 	return ww.zipWriter.Close()
 }
@@ -356,6 +356,7 @@ func (ww *WorkbookWriter) NewSheetWriter(s *Sheet) (*SheetWriter, error) {
 
 	if ww.sheetWriter != nil {
 		err := ww.sheetWriter.Close()
+		ww.sheetWriter = nil
 		if err != nil {
 			return nil, err
 		}
@@ -479,6 +480,7 @@ func (sw *SheetWriter) Close() error {
 	if sw.closed {
 		panic("SheetWriter already closed")
 	}
+	sw.closed = true
 
 	cellEndX, cellEndY := CellIndex(sw.maxNCols-1, sw.currentIndex-1)
 	_, err := fmt.Fprintf(sw.f, `<dimension ref="A1:%s%d"/></sheetData>`, cellEndX, cellEndY)
@@ -507,8 +509,6 @@ func (sw *SheetWriter) Close() error {
 	if err != nil {
 		return err
 	}
-
-	sw.closed = true
 
 	return nil
 }
