@@ -148,11 +148,13 @@ const templateSheetStart = `<?xml version="1.0" encoding="UTF-8" standalone="yes
         <sheetView workbookViewId="0"/>
       </sheetViews>
       <sheetFormatPr defaultRowHeight="15" x14ac:dyDescent="0.25"/>
-        <cols>
-          {{range $i, $e := .Cols}}
-          <col min="{{plus $i 1}}" max="{{plus $i 1}}" width="{{$e.Width}}" customWidth="1" style="1"/>
-          {{end}}
-        </cols>
+      <cols>
+        {{range $i, $e := .Cols}}
+        <col min="{{plus $i 1}}" max="{{plus $i 1}}" width="{{$e.Width}}" customWidth="1" style="1"/>
+        {{end}}
+      </cols>
+      <!-- Note: incorrect dimension but tested sheet software didn't care -->
+      <dimension ref="A1:A1"/>
       <sheetData>`
 
 const templateApp = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

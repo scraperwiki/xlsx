@@ -482,8 +482,7 @@ func (sw *SheetWriter) Close() error {
 	}
 	sw.closed = true
 
-	cellEndX, cellEndY := CellIndex(sw.maxNCols-1, sw.currentIndex-1)
-	_, err := fmt.Fprintf(sw.f, `<dimension ref="A1:%s%d"/></sheetData>`, cellEndX, cellEndY)
+	_, err := fmt.Fprintf(sw.f, `</sheetData>`)
 	if err != nil {
 		return err
 	}
